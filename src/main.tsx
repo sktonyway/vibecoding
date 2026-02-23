@@ -1,0 +1,23 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import './index.css'
+import './components/ui/components.css'
+import App from './App.tsx'
+import { TaskProvider } from './context/TaskContext'
+import { FinanceProvider } from './context/FinanceContext'
+import { HabitProvider } from './context/HabitContext'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <TaskProvider>
+        <FinanceProvider>
+          <HabitProvider>
+            <App />
+          </HabitProvider>
+        </FinanceProvider>
+      </TaskProvider>
+    </BrowserRouter>
+  </StrictMode>,
+)
