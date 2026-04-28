@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatterBox — Real-Time Chat</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- LOGIN -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="56" height="56" rx="16" fill="#6c63ff" />
+          <path
+            d="M28 12C19.163 12 12 19.163 12 28c0 2.99.812 5.79 2.23 8.196L12 44l8.053-2.193C22.354 43.222 25.1 44 28 44c8.837 0 16-7.163 16-16S36.837 12 28 12z"
+            fill="white" fill-opacity="0.9" />
+          <path d="M22 25h12M22 30h8" stroke="#6c63ff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <h1>ChatterBox</h1>
+        <p>Pick your identity to enter</p>
+      </div>
+      <div class="login-users" id="user-picks"></div>
+      <button class="login-btn" onclick="enterApp()">Enter Chat</button>
+      <p class="login-notice">Open this page in multiple tabs and pick different users to chat in real-time via
+        BroadcastChannel (simulated WebSocket).</p>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast">
+    <div class="t-name" id="t-name"></div>
+    <div id="t-msg"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div class="sb-header">
+        <div class="me-avatar" id="sb-me-avatar">
+          <div class="me-online"></div>
+        </div>
+        <div class="me-info">
+          <div class="me-name" id="sb-me-name">You</div>
+          <div class="me-tag" id="sb-me-tag">Online</div>
+        </div>
+        <button class="icon-btn" onclick="showModal('group-modal')" title="New Group">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        </button>
+      </div>
+      <div class="sb-search"><input type="text" placeholder="Search chats..." id="search-input"
+          oninput="filterChats(this.value)"></div>
+      <div class="sb-tabs">
+        <div class="sb-tab active" onclick="setTab('all',this)">All</div>
+        <div class="sb-tab" onclick="setTab('dm',this)">Direct</div>
+        <div class="sb-tab" onclick="setTab('group',this)">Groups</div>
+      </div>
+      <div class="sb-list" id="sb-list"></div>
+      <div class="sb-new-group">
+        <button class="new-group-btn" onclick="showModal('group-modal')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New Group
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+      <div id="no-chat">
+        <svg width="72" height="72" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <h2>Select a chat</h2>
+        <p>Choose a conversation from the sidebar to start messaging</p>
+      </div>
+      <div id="chat-view" class="hidden">
+        <div class="chat-header">
+          <div class="ch-avatar" id="ch-avatar"></div>
+          <div class="ch-info">
+            <div class="ch-name" id="ch-name"></div>
+            <div class="ch-sub" id="ch-sub"></div>
+          </div>
+          <div class="ch-actions">
+            <button class="ch-btn" title="Members" onclick="showMembers()" id="members-btn">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="messages-area" id="messages-area"></div>
+        <div id="typing-row" style="padding: 4px 20px 0; min-height: 24px; font-size: 12px; color: var(--muted);"></div>
+        <div class="chat-footer rel">
+          <div id="emoji-panel" class="emoji-panel hidden"></div>
+          <div class="input-row">
+            <button class="icon-btn" onclick="toggleEmoji()" title="Emoji">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+            </button>
+            <div class="msg-input-wrap">
+              <textarea class="msg-input" id="msg-input" rows="1" placeholder="Type a message..."
+                oninput="autoResize(this); onTyping();" onkeydown="handleKey(event)"></textarea>
+            </div>
+            <button class="send-btn" onclick="sendMessage()">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP MODAL -->
+  <div id="group-modal" class="modal-overlay hidden" onclick="closeModalIf(event,'group-modal')">
+    <div class="modal">
+      <h2>Create New Group</h2>
+      <label>Group Name</label>
+      <input type="text" id="gname" placeholder="e.g. Project Team, Friends..." maxlength="40">
+      <label>Description</label>
+      <input type="text" id="gdesc" placeholder="What's this group about?">
+      <label>Add Members</label>
+      <div class="modal-members" id="group-members"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="hideModal('group-modal')">Cancel</button>
+        <button class="btn-primary" onclick="createGroup()">Create Group</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMBERS MODAL -->
+  <div id="members-modal" class="modal-overlay hidden" onclick="closeModalIf(event,'members-modal')">
+    <div class="modal">
+      <h2 id="mm-title">Group Members</h2>
+      <div id="mm-list" style="margin-top:6px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="hideModal('members-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+
+</html>
